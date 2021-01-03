@@ -4,6 +4,7 @@ from settings import save_single as should_save_single
 from color_logger import logger
 from httpx import Response
 
+
 import os
 import shutil
 try:
@@ -11,32 +12,19 @@ try:
 except ModuleNotFoundError:
     import pickle
 
-cwd = "/".join(os.getcwd().split("/")[:-1]) + "/recordings"
-
-singles = "singles"
-sockets = "sockets"
-record_path = f"{cwd}/{record_name}/"
-singles_path = record_path + singles
-sockets_path = record_path + sockets
-
-class PResponse:
-    def __init__(self, r: Response):
-        self.status_code = r.status_code
-        self.headers = r.headers
-        self.content = r.content
-
-class PSocket:
-    def __init__(self, m: str, last_request: int):
-        self.message = m
-        self.last_request = last_request
+from utils import record_path, singles_path, sockets_path
+from utils import PResponse, PSocket, single_path, multiple_path, socket_path, multiple_filename
+from utils import Timer
 
 class Recorder:
     def __init__(self):
-        self.counter = 0
         self.socket_counter = 0
         self.singles_saved = list()
+        self.multiples_saved = {}
+        self.last_request = "First"
+        self.timer = None
 
-    def start(self):
+    def prepare(self):
         try:
             shutil.rmtree(record_path)
         except OSError as e:
@@ -53,36 +41,44 @@ class Recorder:
         else:
             logger.info(f"Created new record folder at {record_path}")
 
+    def start(self):
+        if self.timer is None:
+            self.timer = Timer()
+            self.timer.start()
+
     def save(self, uri: str, response: Response):
-        escaped_uri = uri.replace('/', '\\')
         pResponse = PResponse(response)
         if uri in should_save_single:
-            self.save_single(escaped_uri, pResponse)
+            self.save_single(uri, pResponse)
         else:
-            self.save_multiple(escaped_uri, pResponse)
+            self.start()
+            self.save_multiple(uri, pResponse)
 
     def save_multiple(self, uri: str, response):
-        to = f"{record_path}{self.counter}_{uri}.bin"
+        counter = self.multiples_saved.get(uri, 0)
+        to = multiple_path(uri, counter)
         logger.info(f"Saving response to {to}")
         with open(to, "wb+") as f:
             pickle.dump(response, f, -1)
-            self.counter += 1
+        counter += 1
+        self.multiples_saved[uri] = counter
+        self.last_request = multiple_filename(uri, counter - 1)
+        self.timer.restart()
 
     def save_single(self, uri: str, response):
         if uri in self.singles_saved:
             return
-        to = f"{singles_path}/{uri}.bin"
+        to = single_path(uri)
         logger.info(f"Saving single response to {to}")
         with open(to, "wb+") as f:
             pickle.dump(response, f, -1)
             self.singles_saved.append(uri)
 
     def save_socket(self, message: object):
-        pSocket = PSocket(message, self.counter)
-        to = f"{sockets_path}/{self.counter}_{self.socket_counter}.bin"
+        time_after = self.timer.nostop_check()
+        pSocket = PSocket(message, self.last_request, time_after)
+        to = socket_path(self.socket_counter)
         logger.info(f"Saving socket message to {to}")
         with open(to, "wb+") as f:
             pickle.dump(pSocket, f, -1)
-            self.socket_counter += 1
-
-    # logger.info(f"Playing back record {record_name}")
+        self.socket_counter += 1
