@@ -14,11 +14,17 @@ from color_logger import logger
 import asyncio
 from settings import protocol, socket_protocol, endpoint
 from settings import socket_rop, ignore_log, save_single
+from settings import mode
+from recorder import Recorder
 
 out_socket_endpoint = f"{socket_protocol}{endpoint}{socket_rop}"
 client = AsyncClient()
 
 app = FastAPI()
+
+if mode == "RECORD":
+    recorder = Recorder()
+    recorder.start()
 
 def proxied_url(rop: str):
     return f"{protocol}{endpoint}{rop}"
@@ -38,6 +44,14 @@ async def proxy_request(request: Request, rop: str):
 
     if rop not in ignore_log:
         logger.info(f"Received {result.status_code} from {result.url}")
+
+    if mode == "PROXY":
+        None
+    elif mode == "RECORD":
+        global recorder
+        recorder.save(rop, result)
+    elif mode == "PLAYBACK":
+        None
 
     headers = result.headers
     content_type = None
@@ -60,7 +74,7 @@ async def proxy_request(request: Request, rop: str):
             status_code=result.status_code
             )
     elif response == None and result.headers['content-type'].startswith("image"):
-        return StreamingResponse(
+        response = StreamingResponse(
             BytesIO(result.content), 
             media_type=result.headers['content-type'],
             headers=headers,
@@ -127,6 +141,14 @@ def on_message(ws, message):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(inSocket.send_bytes(message))
+
+    if mode == "PROXY":
+        None
+    elif mode == "RECORD":
+        global recorder
+        recorder.save_socket(message)
+    elif mode == "PLAYBACK":
+        None
 
 def on_error(ws, error):
     logger.error(f"Got error on OUT socket {error}")
