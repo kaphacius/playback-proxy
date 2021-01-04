@@ -13,7 +13,7 @@ except ModuleNotFoundError:
     import pickle
 
 from utils import record_path, singles_path, multiple_path, multiple_filename, sockets_path
-from utils import PResponse, PSocket, unescape_uri
+from utils import PResponse, PSocket, unescape_uri, not_found_response
 from threading import Timer
 
 class Player:
@@ -51,6 +51,15 @@ class Player:
         
         counter = self.multiples_saved.get(uri, 0)
         path = multiple_path(uri, counter)
+        if not os.path.exists(path):
+            logger.warning(f"Response not found at {path}")
+            if counter is not 0:
+                logger.warning(f"Attempting previous response")
+                counter -= 1
+                path = multiple_path(uri, counter)
+            else:
+                logger.error(f"Unknown call")
+                return not_found_response
         logger.info(f"Attempting to load response from {path}")
         with open(path, 'rb') as f:
             pResponse: PResponse = pickle.load(f)

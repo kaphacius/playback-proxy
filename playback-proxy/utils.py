@@ -15,6 +15,8 @@ record_path = f"{cwd}/{record_name}/"
 singles_path = record_path + singles
 sockets_path = record_path + sockets
 
+not_found_response = Response(status_code=404)
+
 def escape_uri(uri: str):
     return uri.replace('/', '{')
 
