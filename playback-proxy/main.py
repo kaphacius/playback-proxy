@@ -26,7 +26,6 @@ app = FastAPI()
 def accept_socket(message: str):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    print(inSocket)
     loop.run_until_complete(inSocket.send_bytes(message.encode('utf-8')))
 
 is_playback = mode == "PLAYBACK"
@@ -55,7 +54,7 @@ async def proxy_request(request: Request, rop: str):
 
     if is_playback:
         result = player.load_next(rop)
-    elif is_proxy:
+    else:
         body = await request.body()
         result = await client.request(
             method=request.method,
@@ -137,7 +136,7 @@ async def socket_endpoint(in_ws: fWebSocket):
     elif is_playback:
         print("starting player")
         player.start()
-
+ 
     if is_proxy:
         outSocket = _websocket.WebSocketApp(out_socket_endpoint,
                               on_message = on_message,
