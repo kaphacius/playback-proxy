@@ -52,6 +52,9 @@ class PSocket:
         self.last_request = last_request
         self.time_after = time_after
 
+    def description(self):
+        return f"{self.time_after} after {unescape_uri(self.last_request)}: {self.message}"
+
 class Timer:
     def __init__(self):
         self._start_time = None

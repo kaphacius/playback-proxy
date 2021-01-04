@@ -38,8 +38,8 @@ class Player:
             logger.info(f"Attempting to load socket message from {path}")
             with open(path, 'rb') as f:
                 self.sockets_saved.append(pickle.load(f))
-
-        print(list(map(lambda x: [x.time_after, x.last_request], self.sockets_saved)))
+        logger.info("Loaded socket events: ")
+        logger.info("\n".join([s.description() for s in self.sockets_saved]))
 
     def start(self):
         logger.info("---Player started---")
@@ -50,7 +50,6 @@ class Player:
             return self.singles_saved[uri].toResponse()
         
         counter = self.multiples_saved.get(uri, 0)
-        print(f"counter {counter} for {uri}")
         path = multiple_path(uri, counter)
         logger.info(f"Attempting to load response from {path}")
         with open(path, 'rb') as f:
