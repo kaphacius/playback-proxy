@@ -7,7 +7,7 @@ from settings import record_name
 from settings import save_single as should_save_single
 from httpx import Response
 
-cwd = "/".join(os.getcwd().split("/")[:-1]) + "/recordings"
+cwd = "/".join(os.getcwd().split("/")) + "/recordings"
 
 singles = "singles"
 sockets = "sockets"
