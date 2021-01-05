@@ -4,7 +4,6 @@ from settings import save_single as should_save_single
 from color_logger import logger
 from httpx import Response
 
-
 import os
 import shutil
 try:
@@ -54,7 +53,7 @@ class Recorder:
             self.start()
             self.save_multiple(uri, pResponse)
 
-    def save_multiple(self, uri: str, response):
+    def save_multiple(self, uri: str, response: PResponse):
         counter = self.multiples_saved.get(uri, 0)
         to = multiple_path(uri, counter)
         logger.info(f"Saving response to {to}")
