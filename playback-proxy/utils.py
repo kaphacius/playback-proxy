@@ -16,12 +16,13 @@ singles_path = record_path + singles
 sockets_path = record_path + sockets
 
 not_found_response = Response(status_code=404)
+slash_escape = '\\'
 
 def escape_uri(uri: str):
-    return uri.replace('/', '{')
+    return uri.replace('/', slash_escape)
 
 def unescape_uri(uri: str):
-    return uri.replace('{', '/')
+    return uri.replace(slash_escape, '/')
 
 def single_path(uri: str):
     return f"{singles_path}/{escape_uri(uri)}.bin"
