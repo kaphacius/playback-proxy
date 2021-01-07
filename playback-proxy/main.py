@@ -1,6 +1,7 @@
 import websocket as _websocket
 from fastapi import FastAPI
 from fastapi import WebSocket as fWebSocket
+from starlette.endpoints import WebSocketEndpoint
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 from httpx import AsyncClient
@@ -123,47 +124,46 @@ outSocket: _websocket.WebSocketApp
 def outConnected():
     return out_connected
 
-@app.websocket(f"/{socket_rop}")
-async def socket_endpoint(in_ws: fWebSocket):
-    global inSocket, outSocket
-    inSocket = in_ws
-    await in_ws.accept()
-    logger.info(f"IN socket connected on {socket_rop}")
+@app.websocket_route(f"/{socket_rop}")
+class MessagesEndpoint(WebSocketEndpoint):
+    async def on_connect(self, in_ws):
+        global inSocket, outSocket
+        inSocket = in_ws
+        await in_ws.accept()
 
-    if is_record:
-        global recorder
-        recorder.start()
-    elif is_playback:
-        print("starting player")
-        player.start()
- 
-    if is_proxy:
-        outSocket = _websocket.WebSocketApp(out_socket_endpoint,
-                              on_message = on_message,
-                              on_error = on_error,
-                              on_close = on_close)
-        outSocket.on_open = on_open
-        t = threading.Thread(target=outSocketThread, args=(outSocket,))
-        t.daemon = True
-        t.start()
-        wait(outConnected)
+        logger.info(f"IN socket connected on {socket_rop}")
 
-    try:
-        while True:
-            data = await inSocket.receive_bytes()
-            logger.info("Received from IN socket " + data.decode("utf-8"))
-            if is_proxy:
-                outSocket.send(data)
-    except RuntimeError as e:
-        logger.error(f"Got exception on IN socket {e}")
-        
+        if is_record:
+            global recorder
+            recorder.start()
+        elif is_playback:
+            player.start()
+
+        if is_proxy:
+            outSocket = _websocket.WebSocketApp(out_socket_endpoint,
+                                  on_message = out_on_message,
+                                  on_error = out_on_error,
+                                  on_close = out_on_close)
+            outSocket.on_open = out_on_open
+            t = threading.Thread(target=outSocketThread, args=(outSocket,))
+            t.daemon = True
+            t.start()
+            wait(outConnected)
+
+    async def on_receive(self, in_ws, data) -> None:
+        logger.info("Received from IN socket " + data.decode("utf-8"))
+        if is_proxy:
+            outSocket.send(data)
+
+    async def on_disconnect(self, in_ws, close_code):
+        logger.info(f"IN socket disconnected on {socket_rop}")
 
 
 def outSocketThread(ws: _websocket):
-    ws.on_open = on_open
+    ws.on_open = out_on_open
     ws.run_forever()
 
-def on_message(ws, message):
+def out_on_message(ws, message):
     logger.info(f"Received from OUT socket {message}")
 
     if is_record:
@@ -174,13 +174,13 @@ def on_message(ws, message):
     asyncio.set_event_loop(loop)
     loop.run_until_complete(inSocket.send_bytes(message))
 
-def on_error(ws, error):
+def out_on_error(ws, error):
     logger.error(f"Got error on OUT socket {error}")
 
-def on_close(ws):
+def out_on_close(ws):
     logger.warning(f"OUT socket was closed")
 
-def on_open(ws):
+def out_on_open(ws):
     logger.info(f"OUT socket connected to {out_socket_endpoint}")
     global out_connected
     out_connected = True
