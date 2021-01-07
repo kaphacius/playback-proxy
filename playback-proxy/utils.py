@@ -5,13 +5,14 @@ import time
 from settings import mode
 from settings import record_name
 from settings import save_single as should_save_single
+from settings import records_path
 from httpx import Response
 
 cwd = "/".join(os.getcwd().split("/")) + "/recordings"
 
 singles = "singles"
 sockets = "sockets"
-record_path = f"{cwd}/{record_name}/"
+record_path = f"{records_path}/{record_name}/"
 singles_path = record_path + singles
 sockets_path = record_path + sockets
 

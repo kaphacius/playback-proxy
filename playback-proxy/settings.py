@@ -7,6 +7,7 @@ protocol = os.getenv("PROTOCOL")
 endpoint = os.getenv("ENDPOINT")
 mode = os.getenv("MODE")
 record_name = os.getenv("RECORD_NAME")
+records_path = os.getenv("RECORDS_PATH")
 
 try:
     socket_protocol = os.getenv("SOCKET_PROTOCOL")
