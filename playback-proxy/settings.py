@@ -16,8 +16,8 @@ if (endpoint := os.getenv("ENDPOINT")) is None:
 if (mode := os.getenv("MODE")) is None:
     logger.error("MODE variable not found. Check your env file")
     envs_correct = False
-if (record_name := os.getenv("RECORD_NAME")) is None:
-    logger.error("RECORD_NAME variable not found. Check your env file")
+if (record_name := os.getenv("RECORDING")) is None:
+    logger.error("RECORDING variable not found. Check your env file")
     envs_correct = False
 if (records_path := os.getenv("RECORDS_PATH")) is None:
     logger.error("RECORDS_PATH variable not found. Check your env file")
