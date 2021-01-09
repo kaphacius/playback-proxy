@@ -16,7 +16,6 @@
 - Any other ideas people might have
 
 ## Install
-
 ```sh
 git clone https://github.com/kaphacius/playback-proxy.git
 ```
@@ -26,11 +25,33 @@ Install all dependencies with
 ```sh
 pip3 install requirements.txt
 ```
-Set up an [`.env` file](https://github.com/kaphacius/playback-proxy/blob/main/template.env)
 
 ## 🚀 Usage
+There are 2 modes of running the tool: RECORD and PLAYBACK.
+- During RECORD, all communication between client and server is stored.
+- Duruing PLAYBACK, the socket uses previously stored responses when being requested.
+
+Firstly, set up an `.env` [file](https://github.com/kaphacius/playback-proxy/blob/main/template.env) with mandatory and optional parameters. Copy the and rename [*template.env*](https://github.com/kaphacius/playback-proxy/blob/main/template.env) to a desired name.
+Mandatory parameters:
+- `PROTOCOL` - protocol used for communication (only http for now)
+- `ENDPOINT` - the address of the server to which the proxy will connect to
+- `MODE` - current mode. Can be changed later during when launching the proxy.
+- `RECORDS_PATH` - relative path to where all of the recordings will be stored. Must exists before running.
+- `RECORDING` - name of the current recording. This will be appended to RECORDS_PATH and a folder will be created to store saved data. Can be changed later when launching the proxy.
+
+Make the starter script executable:
 ```sh
-./proxy-starter.sh -m {MODE} -r {RECORDING_NAME} -e {PATH_TO_ENV_FILE} -a {PROXY_SERVER_ADDRESS} -p {PROXY_PORT}
+chmod +x proxy-starter.sh
+```
+Then, run the proxy in ***RECORD*** mode. Specify the name of the current recording `RECORDING`. This will create a folder (or use an existing one) where the responses will be saved. Set relative path to your specific `.env` file via `PATH_TO_ENV_FILE`. Specify address and port where the client will be connecting via `PROXY_SERVER_ADDRESS` and `PROXY_PORT`. 
+```sh
+./proxy-starter.sh -m RECORD -r {RECORDING} -e {PATH_TO_ENV_FILE} -a {PROXY_SERVER_ADDRESS} -p {PROXY_PORT}
+```
+Perform necessary interactions with the backend and stop the proxy by pressing `Ctrl+C`.
+
+Finally, run the proxy in ***PLAYBACK*** mode. Interact with the server the same way as during recording - receive the same responses.
+```sh
+./proxy-starter.sh -m PLAYBACK -r {RECORDING} -e {PATH_TO_ENV_FILE} -a {PROXY_SERVER_ADDRESS} -p {PROXY_PORT}
 ```
 
 ## Author
