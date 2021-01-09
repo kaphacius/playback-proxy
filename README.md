@@ -7,8 +7,8 @@
 ## Supported Features
 - Record multiple calls to the same endpoint. These will be reproduced in the same order during **PLAYBACK** as they were requested.
 - Record web socket events. These will be reproduced based on the last request and time before socket was received. This means that if the socket was received 2 seconds after a particular call in **RECORD** mode, during **PLAYBACK** it will be sent 2 seconds after that particular call is requested.
-- Specify a list of endpoints that are recorded only once. Same response will be used during **PLAYBACK** for every call. See _SAVE_SINGLE_ parameter in the `.env` file 
-- Specify a list of endpoints that are not printed to the log. See _IGNORE_LOG_ parameter in the `.env` file
+- Specify a list of endpoints that are recorded only once. Same response will be used during **PLAYBACK** for every call. See `SAVE_SINGLE` parameter in the `.env` file 
+- Specify a list of endpoints that are not printed to the log. See `IGNORE_LOG` parameter in the `.env` file
 
 ## Unsupported (yet) Features
 - Saving responses in any other format (json, plaintext) than binary
