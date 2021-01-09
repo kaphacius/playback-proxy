@@ -4,17 +4,25 @@ import time
 
 from settings import mode
 from settings import record_name
-from settings import save_single as should_save_single
+from settings import save_single as singles_list
+from settings import socket_rop
 from settings import records_path
 from httpx import Response
 
-cwd = "/".join(os.getcwd().split("/")) + "/recordings"
+cwd = os.getcwd()
+record_path = f"{cwd}/{records_path}/{record_name}/"
 
-singles = "singles"
-sockets = "sockets"
-record_path = f"{records_path}/{record_name}/"
-singles_path = record_path + singles
-sockets_path = record_path + sockets
+if socket_rop is not None:
+    sockets = "sockets"
+    sockets_path = record_path + sockets
+else:
+    sockets_path = None
+
+if singles_list is not None:
+    singles = "singles"
+    singles_path = record_path + singles
+else:
+    singles_path = None
 
 not_found_response = Response(status_code=404)
 slash_escape = '\\'

@@ -70,8 +70,6 @@ then
 fi
 
 echo "Setting ${MODE} mode, ${RECORDING} record name to env file at ${ENV_PATH}"
-echo ${PORT}
-echo ${HOST}
 
 sed -i '' -E "s|MODE=\"(..*)\"|MODE=\"${MODE}\"|g" "${ENV_PATH}"
 sed -i '' -E "s|RECORD_NAME=\"(..*)\"|RECORD_NAME=\"${RECORDING}\"|g" "${ENV_PATH}"
