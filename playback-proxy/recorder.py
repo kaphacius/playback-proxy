@@ -1,6 +1,7 @@
 from settings import mode
 from settings import record_name
-from settings import save_single as should_save_single
+from settings import save_single as singles_list
+from settings import socket_rop
 from color_logger import logger
 from httpx import Response
 
@@ -33,8 +34,10 @@ class Recorder:
 
         try:
             os.mkdir(record_path)
-            os.mkdir(singles_path)
-            os.mkdir(sockets_path)
+            if singles_list is not None:
+                os.mkdir(singles_path)
+            if socket_rop is not None:
+                os.mkdir(sockets_path)
         except OSError as e:
             logger.error(f"Error creating record folder at {record_path}: {str(e)}")
         else:
@@ -47,7 +50,7 @@ class Recorder:
 
     def save(self, uri: str, response: Response):
         pResponse = PResponse(response)
-        if uri in should_save_single:
+        if uri in singles_list:
             self.save_single(uri, pResponse)
         else:
             self.start()

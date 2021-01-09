@@ -33,16 +33,21 @@ is_playback = mode == "PLAYBACK"
 is_record = mode == "RECORD"
 is_proxy = is_record or mode == "PROXY"
 
+def print_welcome(mode: str):
+    logger.info("***************************")
+    logger.info(f"STARTING IN {mode} MODE")
+    logger.info("***************************")
+
 if is_record:
-    logger.info("\n\n\nSTARTING IN RECORDING MODE\n\n\n")
+    print_welcome("RECORDING")
     recorder = Recorder()
     recorder.prepare()
 elif is_playback:
-    logger.info("\n\n\nSTARTING IN PLAYBACK MODE\n\n\n")
+    print_welcome("PLAYBACK")
     player = Player(accept_socket)
     player.prepare()
 elif is_proxy:
-    logger.info("\n\n\nSTARTING IN PROXY MODE\n\n\n")
+    print_welcome("PROXY")
 
 def proxied_url(rop: str):
     return f"{protocol}{endpoint}{rop}"
@@ -124,63 +129,66 @@ outSocket: _websocket.WebSocketApp
 def outConnected():
     return out_connected
 
-@app.websocket_route(f"/{socket_rop}")
-class MessagesEndpoint(WebSocketEndpoint):
-    async def on_connect(self, in_ws):
-        global inSocket, outSocket
-        inSocket = in_ws
-        await in_ws.accept()
+if socket_rop is not None:
+    logger.info(f"Setting up socket on {socket_rop}")
+    @app.websocket_route(f"/{socket_rop}")
+    class MessagesEndpoint(WebSocketEndpoint):
+        async def on_connect(self, in_ws):
+            global inSocket, outSocket
+            inSocket = in_ws
+            await in_ws.accept()
 
-        logger.info(f"IN socket connected on {socket_rop}")
+            logger.info(f"IN socket connected on {socket_rop}")
+
+            if is_record:
+                global recorder
+                recorder.start()
+            elif is_playback:
+                player.start()
+
+            if is_proxy:
+                outSocket = _websocket.WebSocketApp(out_socket_endpoint,
+                                      on_message = out_on_message,
+                                      on_error = out_on_error,
+                                      on_close = out_on_close)
+                outSocket.on_open = out_on_open
+                t = threading.Thread(target=outSocketThread, args=(outSocket,))
+                t.daemon = True
+                t.start()
+                wait(outConnected)
+
+        async def on_receive(self, in_ws, data) -> None:
+            logger.info("Received from IN socket " + data.decode("utf-8"))
+            if is_proxy:
+                outSocket.send(data)
+
+        async def on_disconnect(self, in_ws, close_code):
+            logger.info(f"IN socket disconnected on {socket_rop}")
+
+
+    def outSocketThread(ws: _websocket):
+        ws.on_open = out_on_open
+        ws.run_forever()
+
+    def out_on_message(ws, message):
+        logger.info(f"Received from OUT socket {message}")
 
         if is_record:
             global recorder
-            recorder.start()
-        elif is_playback:
-            player.start()
+            recorder.save_socket(message)
 
-        if is_proxy:
-            outSocket = _websocket.WebSocketApp(out_socket_endpoint,
-                                  on_message = out_on_message,
-                                  on_error = out_on_error,
-                                  on_close = out_on_close)
-            outSocket.on_open = out_on_open
-            t = threading.Thread(target=outSocketThread, args=(outSocket,))
-            t.daemon = True
-            t.start()
-            wait(outConnected)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(inSocket.send_bytes(message))
 
-    async def on_receive(self, in_ws, data) -> None:
-        logger.info("Received from IN socket " + data.decode("utf-8"))
-        if is_proxy:
-            outSocket.send(data)
+    def out_on_error(ws, error):
+        logger.error(f"Got error on OUT socket {error}")
 
-    async def on_disconnect(self, in_ws, close_code):
-        logger.info(f"IN socket disconnected on {socket_rop}")
+    def out_on_close(ws):
+        logger.warning(f"OUT socket was closed")
 
+    def out_on_open(ws):
+        logger.info(f"OUT socket connected to {out_socket_endpoint}")
+        global out_connected
+        out_connected = True
 
-def outSocketThread(ws: _websocket):
-    ws.on_open = out_on_open
-    ws.run_forever()
-
-def out_on_message(ws, message):
-    logger.info(f"Received from OUT socket {message}")
-
-    if is_record:
-        global recorder
-        recorder.save_socket(message)
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(inSocket.send_bytes(message))
-
-def out_on_error(ws, error):
-    logger.error(f"Got error on OUT socket {error}")
-
-def out_on_close(ws):
-    logger.warning(f"OUT socket was closed")
-
-def out_on_open(ws):
-    logger.info(f"OUT socket connected to {out_socket_endpoint}")
-    global out_connected
-    out_connected = True

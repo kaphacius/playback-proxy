@@ -6,6 +6,7 @@ from httpx import Response
 
 
 import os
+import sys
 import shutil
 try:
     import cPickle as pickle
@@ -27,19 +28,29 @@ class Player:
         self.dispatchers = list()
 
     def prepare(self):
+        if os.path.exists(record_path) is False:
+            logger.error(f"Recording folder not found at {record_path}")
+            sys.exit(2)
+
+        if singles_path is not None:
+            self.load_singles()
+        if sockets_path is not None:
+            self.load_sockets()
+
+    def load_singles(self):
         for single in os.listdir(singles_path):
             path = f"{singles_path}/{single}"
             logger.info(f"Attempting to load single response from {path}")
             with open(path, 'rb') as f:
                 self.singles_saved[os.path.splitext(unescape_uri(single))[0]] = pickle.load(f)
 
+    def load_sockets(self):
         for socket in os.listdir(sockets_path):
             path = f"{sockets_path}/{socket}"
             logger.info(f"Attempting to load socket message from {path}")
             with open(path, 'rb') as f:
                 self.sockets_saved.append(pickle.load(f))
-        logger.info("Loaded socket events: ")
-        logger.info("\n".join([s.description() for s in self.sockets_saved]))
+        logger.info(f"Loaded {len(self.sockets_saved)} socket events: ")
 
     def start(self):
         logger.info("---Player started---")
