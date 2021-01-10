@@ -13,6 +13,8 @@
 ## Unsupported (yet) Features
 - Saving responses in any other format (json, plaintext) than binary
 - Using `https` and `wss` protocols
+- Support for HAR files as records
+- Support for optional delay
 - Any other ideas people might have
 
 ## Install
