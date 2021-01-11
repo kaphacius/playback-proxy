@@ -72,6 +72,6 @@ fi
 echo "Setting ${MODE} mode, ${RECORDING} record name to env file at ${ENV_PATH}"
 
 sed -i '' -E "s|MODE=\"(..*)\"|MODE=\"${MODE}\"|g" "${ENV_PATH}"
-sed -i '' -E "s|RECORD_NAME=\"(..*)\"|RECORD_NAME=\"${RECORDING}\"|g" "${ENV_PATH}"
+sed -i '' -E "s|RECORDING=\"(..*)\"|RECORDING=\"${RECORDING}\"|g" "${ENV_PATH}"
 
 uvicorn --app-dir ./playback-proxy/ main:app --host "${HOST}" --port "${PORT}" --log-level info --no-access-log --env-file "${ENV_PATH}"
