@@ -1,10 +1,5 @@
-from settings import mode
-from settings import record_name
-from settings import save_single as should_save_single
 from color_logger import logger
 from httpx import Response
-
-
 import os
 import sys
 import shutil
@@ -13,7 +8,8 @@ try:
 except ModuleNotFoundError:
     import pickle
 
-from utils import record_path, singles_path, multiple_path, multiple_filename, sockets_path
+import utils
+import settings
 from utils import PResponse, PSocket, unescape_uri, not_found_response
 from threading import Timer
 
@@ -28,25 +24,25 @@ class Player:
         self.dispatchers = list()
 
     def prepare(self):
-        if os.path.exists(record_path) is False:
-            logger.error(f"Recording folder not found at {record_path}")
+        if os.path.exists(utils.record_path) is False:
+            logger.error(f"Recording folder not found at {utils.record_path}")
             sys.exit(2)
 
-        if singles_path is not None:
+        if utils.singles_path is not None:
             self.load_singles()
-        if sockets_path is not None:
+        if utils.sockets_path is not None:
             self.load_sockets()
 
     def load_singles(self):
-        for single in os.listdir(singles_path):
-            path = f"{singles_path}/{single}"
+        for single in os.listdir(utils.singles_path):
+            path = f"{utils.singles_path}/{single}"
             logger.info(f"Attempting to load single response from {path}")
             with open(path, 'rb') as f:
                 self.singles_saved[os.path.splitext(unescape_uri(single))[0]] = pickle.load(f)
 
     def load_sockets(self):
-        for socket in os.listdir(sockets_path):
-            path = f"{sockets_path}/{socket}"
+        for socket in os.listdir(utils.sockets_path):
+            path = f"{utils.sockets_path}/{socket}"
             logger.info(f"Attempting to load socket message from {path}")
             with open(path, 'rb') as f:
                 self.sockets_saved.append(pickle.load(f))
@@ -57,17 +53,17 @@ class Player:
         self.check_socket()
 
     def load_next(self, uri: str):
-        if uri in should_save_single and uri in self.singles_saved:
+        if uri in settings.save_single and uri in self.singles_saved:
             return self.singles_saved[uri].toResponse()
         
         counter = self.multiples_saved.get(uri, 0)
-        path = multiple_path(uri, counter)
+        path = utils.multiple_path(uri, counter)
         if not os.path.exists(path):
             logger.warning(f"Response not found at {path}")
             if counter is not 0:
                 logger.warning(f"Attempting previous response")
                 counter -= 1
-                path = multiple_path(uri, counter)
+                path = utils.multiple_path(uri, counter)
             else:
                 logger.error(f"Unknown call")
                 return not_found_response
@@ -76,7 +72,7 @@ class Player:
             pResponse: PResponse = pickle.load(f)
             counter += 1
             self.multiples_saved[uri] = counter
-            self.last_request = multiple_filename(uri, counter - 1)
+            self.last_request = utils.multiple_filename(uri, counter - 1)
             self.check_socket()
             return pResponse.toResponse()
 

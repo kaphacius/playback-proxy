@@ -1,9 +1,6 @@
-from settings import mode
-from settings import record_name
-from settings import save_single as singles_list
-from settings import socket_rop
 from color_logger import logger
 from httpx import Response
+import settings
 
 import os
 import shutil
@@ -12,9 +9,9 @@ try:
 except ModuleNotFoundError:
     import pickle
 
-from utils import record_path, singles_path, sockets_path
 from utils import PResponse, PSocket, single_path, multiple_path, socket_path, multiple_filename
 from utils import Timer
+import utils
 
 class Recorder:
     def __init__(self):
@@ -26,22 +23,22 @@ class Recorder:
 
     def prepare(self):
         try:
-            shutil.rmtree(record_path)
+            shutil.rmtree(utils.record_path)
         except OSError as e:
-            logger.info(f"Nothing to delete at {record_path}")
+            logger.info(f"Nothing to delete at {utils.record_path}")
         else:
-            logger.info(f"Removed existing record folder at {record_path}")
+            logger.info(f"Removed existing record folder at {utils.record_path}")
 
         try:
-            os.mkdir(record_path)
-            if singles_list is not None:
-                os.mkdir(singles_path)
-            if socket_rop is not None:
-                os.mkdir(sockets_path)
+            os.mkdir(utils.record_path)
+            if settings.save_single is not None:
+                os.mkdir(utils.singles_path)
+            if settings.socket_rop is not None:
+                os.mkdir(utils.sockets_path)
         except OSError as e:
-            logger.error(f"Error creating record folder at {record_path}: {str(e)}")
+            logger.error(f"Error creating record folder at {utils.record_path}: {str(e)}")
         else:
-            logger.info(f"Created new record folder at {record_path}")
+            logger.info(f"Created new record folder at {utils.record_path}")
 
     def start(self):
         if self.timer is None:
@@ -50,7 +47,7 @@ class Recorder:
 
     def save(self, uri: str, response: Response):
         pResponse = PResponse(response)
-        if uri in singles_list:
+        if uri in settings.save_single:
             self.save_single(uri, pResponse)
         else:
             self.start()

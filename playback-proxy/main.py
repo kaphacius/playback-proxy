@@ -9,51 +9,74 @@ from io import BytesIO
 import sys
 import time
 import threading
+import os
 from waiting import wait
 import logging
 from color_logger import logger
 import asyncio
-from settings import protocol, socket_protocol, endpoint
-from settings import socket_rop, ignore_log, save_single
-from settings import mode
+import settings
 from recorder import Recorder
 from player import Player
+import utils
 
-out_socket_endpoint = f"{socket_protocol}{endpoint}{socket_rop}"
 client = AsyncClient()
-
 app = FastAPI()
+
+recorder: Recorder = None
+player: Player = None
+is_playback = False
+is_record = False
+is_proxy = False
 
 def accept_socket(message: str):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(inSocket.send_bytes(message.encode('utf-8')))
 
-is_playback = mode == "PLAYBACK"
-is_record = mode == "RECORD"
-is_proxy = is_record or mode == "PROXY"
-
 def print_welcome(mode: str):
-    logger.info("***************************")
-    logger.info(f"STARTING IN {mode} MODE")
-    logger.info("***************************")
+    logger.info("*************************************************")
+    logger.info(f"STARTING {settings.record_name} IN {mode} MODE")
+    logger.info("*************************************************")
 
-if is_record:
-    print_welcome("RECORDING")
-    recorder = Recorder()
-    recorder.prepare()
-elif is_playback:
-    print_welcome("PLAYBACK")
-    player = Player(accept_socket)
-    player.prepare()
-elif is_proxy:
-    print_welcome("PROXY")
+def quit_proxy():
+    os.system("kill `ps -jaxwww | grep \"[.]/playback-proxy\" | awk '{print $2}'`")
+
+def start(record_name: str, mode: str):
+    settings.mode = mode
+    settings.record_name = record_name
+
+    set_mode()
+    utils.set_paths()
+
+    if is_record:
+        print_welcome("RECORDING")
+        global recorder
+        recorder = Recorder()
+        recorder.prepare()
+    elif is_playback:
+        print_welcome("PLAYBACK")
+        global player
+        player = Player(accept_socket)
+        player.prepare()
+    elif is_proxy:
+        print_welcome("PROXY")
+
+def set_mode():
+    global is_playback
+    global is_record
+    global is_proxy
+    is_playback = settings.mode == "PLAYBACK"
+    is_record = settings.mode == "RECORD"
+    is_proxy = is_record or settings.mode == "PROXY"
+
+settings.load_envs()
+start(settings.record_name, settings.mode)
 
 def proxied_url(rop: str):
-    return f"{protocol}{endpoint}{rop}"
+    return f"{settings.protocol}{settings.endpoint}{rop}"
 
 async def proxy_request(request: Request, rop: str):
-    if is_proxy and rop not in ignore_log:
+    if is_proxy and rop not in settings.ignore_log:
         logger.info(f"Asking {request.method} {request.url}")
 
     result: httpx.Response
@@ -72,7 +95,7 @@ async def proxy_request(request: Request, rop: str):
     if is_record:
         recorder.save(rop, result)
 
-    if is_proxy and rop not in ignore_log:
+    if is_proxy and rop not in settings.ignore_log:
         logger.info(f"Received {result.status_code} from {result.url}")
 
     headers = result.headers
@@ -111,6 +134,20 @@ async def on_get(request: Request, rest_of_path: str):
 
 @app.post("/{rest_of_path:path}")
 async def on_post(request: Request, rest_of_path: str):
+    split = rest_of_path.split("/")
+    if split[0] == "__playback-proxy":
+        if split[1] == "quit":
+            logger.info("Quitting proxy")
+            quit_proxy()
+            return Response("Shutting down proxy", media_type='text/plain')
+        elif split[1] == "record":
+            start(split[-1], "RECORD")
+            return Response(f"Re-starting proxy for {split[-1]} in RECORD mode", media_type='text/plain')
+        elif split[1] == "play":
+            print("got playback")
+            start(split[-1], "PLAYBACK")
+            return Response(f"Re-starting proxy for {split[-1]} in PLAYBACK mode", media_type='text/plain')
+
     return await proxy_request(request, rest_of_path)
 
 @app.put("/{rest_of_path:path}")
@@ -121,24 +158,24 @@ async def on_put(request: Request, rest_of_path: str):
 async def on_delete(request: Request, rest_of_path: str):
     return await proxy_request(request, rest_of_path)
 
-
 out_connected = False
 inSocket: fWebSocket
 outSocket: _websocket.WebSocketApp
+out_socket_endpoint = f"{settings.socket_protocol}{settings.endpoint}{settings.socket_rop}"
 
 def outConnected():
     return out_connected
 
-if socket_rop is not None:
-    logger.info(f"Setting up socket on {socket_rop}")
-    @app.websocket_route(f"/{socket_rop}")
+if settings.socket_rop is not None:
+    logger.info(f"Setting up socket on {settings.socket_rop}")
+    @app.websocket_route(f"/{settings.socket_rop}")
     class MessagesEndpoint(WebSocketEndpoint):
         async def on_connect(self, in_ws):
             global inSocket, outSocket
             inSocket = in_ws
             await in_ws.accept()
 
-            logger.info(f"IN socket connected on {socket_rop}")
+            logger.info(f"IN socket connected on {settings.socket_rop}")
 
             if is_record:
                 global recorder
@@ -163,7 +200,7 @@ if socket_rop is not None:
                 outSocket.send(data)
 
         async def on_disconnect(self, in_ws, close_code):
-            logger.info(f"IN socket disconnected on {socket_rop}")
+            logger.info(f"IN socket disconnected on {settings.socket_rop}")
 
 
     def outSocketThread(ws: _websocket):

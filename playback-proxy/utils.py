@@ -2,27 +2,26 @@ import os
 import shutil
 import time
 
-from settings import mode
-from settings import record_name
-from settings import save_single as singles_list
-from settings import socket_rop
-from settings import records_path
 from httpx import Response
+from color_logger import logger
+import settings
 
-cwd = os.getcwd()
-record_path = f"{cwd}/{records_path}/{record_name}/"
+record_path = None
+sockets_path = None
+singles_path = None
 
-if socket_rop is not None:
-    sockets = "sockets"
-    sockets_path = record_path + sockets
-else:
-    sockets_path = None
+def set_paths():
+    cwd = os.getcwd()
+    global record_path
+    record_path = f"{cwd}/{settings.records_path}/{settings.record_name}/"
+    if settings.socket_rop is not None:
+        global sockets_path
+        sockets_path = record_path + "sockets"
+    if settings.save_single is not None:
+        global singles_path
+        singles_path = record_path + "singles"
 
-if singles_list is not None:
-    singles = "singles"
-    singles_path = record_path + singles
-else:
-    singles_path = None
+    logger.info(f"Record path at {record_path}")
 
 not_found_response = Response(status_code=404)
 slash_escape = '\\'
