@@ -39,18 +39,6 @@ while getopts "m:r:e:a:p:h" opt; do
     esac
 done
 
-if [ -z ${MODE+x} ];
-then
-    echo "MODE -m is not set"
-    exit 1
-fi
-
-if [ -z ${RECORDING+x} ];
-then
-    echo "RECORDING -r is not set"
-    exit 1
-fi
-
 if [ -z ${ENV_PATH+x} ];
 then
     echo "ENV_PATH -e is not set"
@@ -69,9 +57,11 @@ then
     exit 1
 fi
 
-echo "Setting ${MODE} mode, ${RECORDING} record name to env file at ${ENV_PATH}"
-
-sed -i '' -E "s|MODE=\"(..*)\"|MODE=\"${MODE}\"|g" "${ENV_PATH}"
-sed -i '' -E "s|RECORDING=\"(..*)\"|RECORDING=\"${RECORDING}\"|g" "${ENV_PATH}"
+if [ -n "$MODE" ] && [ -n "${RECORDING}" ]
+then
+    echo "Setting ${MODE} mode, ${RECORDING} record name to env file at ${ENV_PATH}"
+    sed -i '' -E "s|MODE=\"(..*)\"|MODE=\"${MODE}\"|g" "${ENV_PATH}"
+    sed -i '' -E "s|RECORDING=\"(..*)\"|RECORDING=\"${RECORDING}\"|g" "${ENV_PATH}"
+fi
 
 uvicorn --app-dir ./playback-proxy/ main:app --host "${HOST}" --port "${PORT}" --log-level info --no-access-log --env-file "${ENV_PATH}"

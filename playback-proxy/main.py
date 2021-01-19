@@ -41,7 +41,7 @@ def print_welcome(mode: str):
 def quit_proxy():
     os.system("kill `ps -jaxwww | grep \"[.]/playback-proxy\" | awk '{print $2}'`")
 
-def start(record_name: str, mode: str):
+def start(record_name: str = settings.record_name, mode: str = settings.mode):
     settings.mode = mode
     settings.record_name = record_name
 
@@ -70,7 +70,7 @@ def set_mode():
     is_proxy = is_record or settings.mode == "PROXY"
 
 settings.load_envs()
-start(settings.record_name, settings.mode)
+start()
 
 def proxied_url(rop: str):
     return f"{settings.protocol}{settings.endpoint}{rop}"
