@@ -34,26 +34,33 @@ def accept_socket(message: str):
     loop.run_until_complete(inSocket.send_bytes(message.encode('utf-8')))
 
 def print_welcome(mode: str):
+    record: str = None
+    if settings.record_name != None:
+        record = f" {settings.record_name} "
+    else:
+        record = " "
     logger.info("*************************************************")
-    logger.info(f"STARTING {settings.record_name} IN {mode} MODE")
+    logger.info(f"\n\nSTARTING{record}IN {mode} MODE\n\n")
     logger.info("*************************************************")
 
 def quit_proxy():
     os.system("kill `ps -jaxwww | grep \"[.]/playback-proxy\" | awk '{print $2}'`")
 
-def start(record_name: str = settings.record_name, mode: str = settings.mode):
-    settings.mode = mode
-    settings.record_name = record_name
+def start(record_name: str = None, mode: str = None):
+    if record_name != None and mode != None:
+        settings.mode = mode
+        settings.record_name = record_name
 
     set_mode()
-    utils.set_paths()
 
     if is_record:
+        utils.set_paths()
         print_welcome("RECORDING")
         global recorder
         recorder = Recorder()
         recorder.prepare()
     elif is_playback:
+        utils.set_paths()
         print_welcome("PLAYBACK")
         global player
         player = Player(accept_socket)
@@ -144,7 +151,6 @@ async def on_post(request: Request, rest_of_path: str):
             start(split[-1], "RECORD")
             return Response(f"Re-starting proxy for {split[-1]} in RECORD mode", media_type='text/plain')
         elif split[1] == "play":
-            print("got playback")
             start(split[-1], "PLAYBACK")
             return Response(f"Re-starting proxy for {split[-1]} in PLAYBACK mode", media_type='text/plain')
 

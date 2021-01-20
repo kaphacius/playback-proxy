@@ -31,6 +31,16 @@ def load_envs():
         envs_correct = False
 
     try:
+        mode = os.getenv("MODE")
+    except:
+        mode = "PROXY"
+
+    try:
+        record_name = os.getenv("RECORDING")
+    except:
+        mode = "PROXY"
+
+    try:
         socket_protocol = os.getenv("SOCKET_PROTOCOL")
         socket_rop = os.getenv("SOCKET_ROP")
     except:
