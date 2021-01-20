@@ -25,7 +25,7 @@ git clone https://github.com/kaphacius/playback-proxy.git
 ## Setup
 Install all dependencies with
 ```sh
-pip3 install requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## 🚀 Usage
