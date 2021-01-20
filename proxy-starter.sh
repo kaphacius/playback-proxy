@@ -8,8 +8,9 @@ Help()
    # Display Help
    echo "Starts the playback-proxy server via uvicorn"
    echo
-   echo "Syntax: ./proxy-starter.sh [-m|r|e|a|p|h]"
+   echo "Syntax: ./proxy-starter.sh [-u|m|r|e|a|p|h]"
    echo "options:"
+   echo "u     Specify path to uvicorn"
    echo "m     Specify mode PROXY|RECORD|PLAYBACK"
    echo "r     Specify recording name"
    echo "e     Specify env file path"
@@ -25,8 +26,9 @@ Help()
 ################################################################################
 ################################################################################
 
-while getopts "m:r:e:a:p:h" opt; do
+while getopts "u:m:r:e:a:p:h" opt; do
     case ${opt} in
+        u) UVICORN_PATH=${OPTARG} ;;
         m) MODE=${OPTARG} ;;
         r) RECORDING=${OPTARG} ;;
         e) ENV_PATH=${OPTARG} ;;
@@ -38,6 +40,12 @@ while getopts "m:r:e:a:p:h" opt; do
             exit;;
     esac
 done
+
+if [ -z ${UVICORN_PATH+x} ];
+then
+    echo "UVICORN_PATH -u is not set"
+    exit 1
+fi
 
 if [ -z ${ENV_PATH+x} ];
 then
@@ -64,4 +72,4 @@ then
     sed -i '' -E "s|RECORDING=\"(..*)\"|RECORDING=\"${RECORDING}\"|g" "${ENV_PATH}"
 fi
 
-uvicorn --app-dir ./playback-proxy/ main:app --host "${HOST}" --port "${PORT}" --log-level info --no-access-log --env-file "${ENV_PATH}"
+$UVICORN_PATH --app-dir ./playback-proxy/ main:app --host "${HOST}" --port "${PORT}" --log-level info --no-access-log --env-file "${ENV_PATH}"
