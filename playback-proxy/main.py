@@ -44,7 +44,7 @@ def print_welcome(mode: str):
     logger.info("*************************************************")
 
 def quit_proxy():
-    os.system("kill `ps -jaxwww | grep \"[.]/playback-proxy\" | awk '{print $2}'`")
+    os.system("kill -9 `ps -jaxwww | grep \"[.]/playback-proxy\" | awk '{print $2}'`")
 
 def start(record_name: str = None, mode: str = None):
     if record_name != None and mode != None:
